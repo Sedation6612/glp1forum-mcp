@@ -3,11 +3,14 @@
   "description": "Search & read glp1forum.com (XenForo) with no API keys.",
   "version": "0.3.0",
   "author": { "name": "Sedation6612" },
+  "homepage": "https://github.com/Sedation6612/glp1forum-mcp",
+  "repository": "https://github.com/Sedation6612/glp1forum-mcp",
+  "keywords": ["glp1", "xenforo", "forum", "scraper", "peptides"],
   "license": "SEE LICENSE IN LICENSE",
   "mcpServers": {
     "glp1forum": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/src/index.js"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/index.mjs"]
     }
   }
 }

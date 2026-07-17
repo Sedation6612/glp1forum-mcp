@@ -1,11 +1,19 @@
 {
   "name": "glp1forum-mcp",
+  "description": "Search & read glp1forum.com (XenForo) from Claude with no API keys.",
   "owner": { "name": "Sedation6612" },
   "plugins": [
     {
       "name": "glp1forum-mcp",
       "source": "./",
-      "description": "MCP server to search & read glp1forum.com (XenForo) with no API keys, plus a skill teaching agents how to drive it."
+      "description": "MCP server to search & read glp1forum.com (XenForo) with no API keys, plus a skill teaching agents how to drive it.",
+      "version": "0.3.0",
+      "author": { "name": "Sedation6612" },
+      "homepage": "https://github.com/Sedation6612/glp1forum-mcp",
+      "repository": "https://github.com/Sedation6612/glp1forum-mcp",
+      "license": "SEE LICENSE IN LICENSE",
+      "keywords": ["glp1", "xenforo", "forum", "scraper", "peptides"],
+      "category": "research"
     }
   ]
 }

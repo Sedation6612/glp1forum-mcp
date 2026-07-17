@@ -1,1 +1,3 @@
 node_modules/
+# release artifact — attach to GitHub Releases, don't commit (dist/ IS committed)
+*.mcpb
