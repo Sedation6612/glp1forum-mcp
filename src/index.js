@@ -3,7 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { searchForum, getThread, listForums, listThreads, fetchImages } from "./forum.js";
 
-const server = new McpServer({ name: "glp1forum", version: "0.3.1" });
+const server = new McpServer({ name: "glp1forum", version: "0.4.0" });
 
 server.registerTool("search_forum",
   { description: "Full-text search glp1forum.com with granular XenForo filters. Multi-word keywords are AND-matched (all terms must appear). Category/parent nodes (e.g. 45 Vendor Connection) return nothing unless includeChildNodes: true. A rate-limit error means wait ~60s before retrying. Result has truncated: true when more result pages exist than were fetched — re-search with a higher maxPages (max 3) to get the rest.",
@@ -27,8 +27,6 @@ server.registerTool("search_forum",
         .describe("YYYY-MM-DD. Only to hard-exclude rows newer than a cutoff."),
       minReplies: z.number().optional()
         .describe("Rarely worth setting."),
-      prefixes: z.array(z.number()).optional()
-        .describe("Skip this — the numeric prefix IDs aren't discoverable from any tool."),
       order: z.enum(["date", "replies"]).optional()
         .describe("Omit for relevance. \"date\" (newest first) for any current / latest / in-stock question. \"replies\" (most-discussed) for reputation, consensus, or what-are-people-saying questions."),
       groupByThread: z.boolean().optional()

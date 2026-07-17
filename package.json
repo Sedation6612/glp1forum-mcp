@@ -1,6 +1,6 @@
 {
   "name": "glp1forum-mcp",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "MCP server to search & investigate glp1forum.com (XenForo) with no API keys",
   "keywords": ["mcp", "mcp-server", "model-context-protocol", "claude", "glp1", "xenforo", "forum", "scraper", "peptides"],
@@ -27,8 +27,5 @@
   },
   "devDependencies": {
     "esbuild": "^0.24.0"
-  },
-  "allowScripts": {
-    "esbuild@0.24.2": true
   }
 }

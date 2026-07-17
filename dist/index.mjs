@@ -65455,18 +65455,7 @@ var JAR = path.join(os.tmpdir(), `glp1forum-mcp-cookies-${process.pid}.txt`);
 var MARKER2 = "@@META@@";
 var BLOCKED = [403, 429, 503];
 var BACKOFF = Number(process.env.GLP1_BACKOFF_MS) || 8e3;
-try {
-  for (const f of fs.readdirSync(os.tmpdir())) {
-    const m = f.match(/^glp1forum-mcp-cookies-(\d+)\.txt$/);
-    if (!m || Number(m[1]) === process.pid) continue;
-    const p = path.join(os.tmpdir(), f);
-    try {
-      if (Date.now() - fs.statSync(p).mtimeMs > 6e5) fs.rmSync(p, { force: true });
-    } catch {
-    }
-  }
-} catch {
-}
+process.on("exit", () => fs.rmSync(JAR, { force: true }));
 var cachedToken = null;
 function dropSession() {
   cachedToken = null;
@@ -65619,7 +65608,6 @@ async function _searchForum(p) {
       if (p.newerThan) post.push(["c[newer_than]", p.newerThan]);
       if (p.olderThan) post.push(["c[older_than]", p.olderThan]);
       if (p.minReplies != null) post.push(["c[min_reply_count]", String(p.minReplies)]);
-      for (const pre of p.prefixes ?? []) post.push(["c[prefixes][]", String(pre)]);
       if (p.order) post.push(["order", p.order]);
       if (p.groupByThread) post.push(["grouped", "1"]);
       post.push(["search_type", p.searchType ?? "post"]);
@@ -65774,7 +65762,7 @@ async function listForums() {
 }
 
 // src/index.js
-var server = new McpServer({ name: "glp1forum", version: "0.3.1" });
+var server = new McpServer({ name: "glp1forum", version: "0.4.0" });
 server.registerTool(
   "search_forum",
   {
@@ -65791,7 +65779,6 @@ server.registerTool(
       newerThan: external_exports.string().optional().describe(`YYYY-MM-DD. Only to hard-exclude stale rows \u2014 order:"date" alone usually suffices, so don't agonize over a cutoff.`),
       olderThan: external_exports.string().optional().describe("YYYY-MM-DD. Only to hard-exclude rows newer than a cutoff."),
       minReplies: external_exports.number().optional().describe("Rarely worth setting."),
-      prefixes: external_exports.array(external_exports.number()).optional().describe("Skip this \u2014 the numeric prefix IDs aren't discoverable from any tool."),
       order: external_exports.enum(["date", "replies"]).optional().describe('Omit for relevance. "date" (newest first) for any current / latest / in-stock question. "replies" (most-discussed) for reputation, consensus, or what-are-people-saying questions.'),
       groupByThread: external_exports.boolean().optional().describe("true collapses results to one row per thread. Omitting searchType plus groupByThread:true is the discovery default."),
       searchType: external_exports.enum(["post", "thread"]).optional().describe('Omit (= "post") so a keyword buried in a reply still matches. "thread" matches only titles/opening posts.'),

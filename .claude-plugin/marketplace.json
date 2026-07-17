@@ -7,7 +7,7 @@
       "name": "glp1forum-mcp",
       "source": "./",
       "description": "MCP server to search & read glp1forum.com (XenForo) with no API keys, plus a skill teaching agents how to drive it.",
-      "version": "0.3.1",
+      "version": "0.4.0",
       "author": { "name": "Sedation6612" },
       "homepage": "https://github.com/Sedation6612/glp1forum-mcp",
       "repository": "https://github.com/Sedation6612/glp1forum-mcp",

@@ -22,7 +22,7 @@ Each result row is `{url, title, date, forum, author, replies, snippet}` — so 
 - **`nodes` + `includeChildNodes: true`** — parent/category sections hold no posts of their own and return 0 rows if searched alone; set `includeChildNodes` to search everything under them. Use the IDs from step 1.
 - **`searchType` + `groupByThread`** — default (omit `searchType`) searches posts, so a keyword buried in a reply still matches; add `groupByThread: true` for one row per thread. This is the discovery default. `searchType: "thread"` matches only titles/opening posts.
 - **`order`** — omit for relevance; `"date"` (newest first) for any *current / latest / in-stock* question — read the top rows and check their `date`; `"replies"` (most-discussed) for reputation, consensus, or "what are people saying" questions. `newerThan`/`olderThan` (`YYYY-MM-DD`) only to hard-exclude stale rows — `order: "date"` alone usually suffices, so don't agonize over a cutoff.
-- **Skip `prefixes`** — the numeric IDs aren't discoverable. `author`/`minReplies`/`titlesOnly` are rarely worth setting.
+- `author`/`minReplies`/`titlesOnly` are **rarely worth setting**.
 
 ## Trap: pricing/stock is often image-only
 

@@ -13,7 +13,7 @@ An MCP stdio server that searches and reads **https://glp1forum.com** (a XenForo
 
 ## Tools
 
-- **`search_forum`** — full-text search with XenForo filters (keywords, nodes, author, date range, min replies, prefixes, order, page, `maxPages` up to 3). Keywords are AND-matched; category nodes need `includeChildNodes: true`.
+- **`search_forum`** — full-text search with XenForo filters (keywords, nodes, author, date range, min replies, order, page, `maxPages` up to 3). Keywords are AND-matched; category nodes need `includeChildNodes: true`.
 - **`get_thread`** — read a thread's posts (author, datetime, body, permalink), paginated.
 - **`get_thread_images`** — opt-in: download a thread's image attachments at full size as image blocks so vision can read image-only pricing tables / stock boards / COA figures. `max` caps the count (default 4, max 5 — full-size images are token-expensive).
 - **`list_threads`** — browse a forum section's thread list by `nodeId`, paginated.

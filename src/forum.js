@@ -14,15 +14,9 @@ const MARKER = "@@META@@";
 const BLOCKED = [403, 429, 503];
 const BACKOFF = Number(process.env.GLP1_BACKOFF_MS) || 8000;
 
-// best-effort: reap other processes' stale cookie jars (>10min old) so /tmp doesn't fill up
-try {
-  for (const f of fs.readdirSync(os.tmpdir())) {
-    const m = f.match(/^glp1forum-mcp-cookies-(\d+)\.txt$/);
-    if (!m || Number(m[1]) === process.pid) continue;
-    const p = path.join(os.tmpdir(), f);
-    try { if (Date.now() - fs.statSync(p).mtimeMs > 600000) fs.rmSync(p, { force: true }); } catch {}
-  }
-} catch {}
+// ponytail: only our own jar, only on a clean exit. A jar orphaned by SIGKILL is ~1KB the OS
+// temp cleaner handles — reaping other pids' jars cost more lines than the bytes it reclaimed.
+process.on("exit", () => fs.rmSync(JAR, { force: true }));
 
 // per-process guest _xfToken cache — search re-fetched it every call, doubling requests under the throttle
 let cachedToken = null;
@@ -125,7 +119,7 @@ async function fetchHtml(url, { post } = {}) {
   return res;
 }
 
-export async function getToken() {
+async function getToken() {
   const { html } = await fetchHtml(`${BASE}/search/?type=post`);
   const m = html.match(/name="_xfToken" value="([^"]+)"/);
   if (!m) throw new Error("no _xfToken (Cloudflare block or layout change?)");
@@ -194,7 +188,6 @@ async function _searchForum(p) {
       if (p.newerThan) post.push(["c[newer_than]", p.newerThan]);
       if (p.olderThan) post.push(["c[older_than]", p.olderThan]);
       if (p.minReplies != null) post.push(["c[min_reply_count]", String(p.minReplies)]);
-      for (const pre of p.prefixes ?? []) post.push(["c[prefixes][]", String(pre)]);
       if (p.order) post.push(["order", p.order]);
       if (p.groupByThread) post.push(["grouped", "1"]);
       post.push(["search_type", p.searchType ?? "post"]);
@@ -285,7 +278,7 @@ export async function getThread({ url, threadId, page }) {
 }
 
 // ponytail: sniff real type from magic bytes — the site serves WebP at .jpg URLs (verified 2026-07-16)
-export function sniffMime(b) {
+function sniffMime(b) {
   if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
   if (b.length >= 4 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
   if (b.length >= 12 && b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") return "image/webp";
