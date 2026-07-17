@@ -1,11 +1,12 @@
-# The .mcpb ships only the bundled, dependency-free server (dist/index.mjs) + docs.
-# Everything else is build-time or plugin-channel only.
+# The .mcpb ships only the bundled, dependency-free server (dist/index.mjs) + user-facing docs.
+# Everything else is build-time, contributor-only, or plugin-channel only.
 node_modules/
 src/
 skills/
 .claude-plugin/
 .git/
 .github/
+CLAUDE.md
 package.json
 package-lock.json
 .gitignore

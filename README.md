@@ -21,9 +21,14 @@ An MCP stdio server that searches and reads **https://glp1forum.com** (a XenForo
 
 ## Rate limiting
 
-All requests share a global throttle: **≥2.5s between hits**. On HTTP `403/429/503` the server waits **~65s** (the observed 503 clear time) and retries once; if still blocked it throws `glp1forum rate-limited or unavailable — wait ~60s before retrying`.
+All requests share a global throttle: **≥2.5s between hits**. On HTTP `403/429/503` the server backs off **8s plus up to 10s of jitter** and retries once; if still blocked it throws `glp1forum rate-limited or unavailable (HTTP 503) — wait ~60s before retrying`.
 
-That backoff plus request time can blow past a 2-minute caller timeout. **Give callers ≥90s**, or lower the backoff with the `GLP1_BACKOFF_MS` env var.
+The backoff is deliberately much shorter than the ~60s a Cloudflare 503 actually takes to clear: a handler that slept that long would trip the MCP client's own 60s timeout (`-32001`), and the sleep holds the search mutex. So it fails fast with a retryable error and asks the *caller* to wait instead — hence "wait ~60s" in the message.
+
+Two env vars tune this:
+
+- **`GLP1_BACKOFF_MS`** (default `8000`) — the retry backoff. Raise it if one retry isn't enough.
+- **`GLP1_INTERVAL_MS`** (default `2500`) — the global gap between requests. Raise it for heavy concurrent use; each search costs 2 requests, and 8-way concurrency trips Cloudflare at 2.5s.
 
 ## Install
 
@@ -69,7 +74,7 @@ npm run pack        # build + produce glp1forum-mcp.mcpb for Claude Desktop
 npm run selftest      # or: node src/selftest.js
 ```
 
-Runs ~7 live requests (≈25s under the throttle). Failure means `curl` is being blocked or the site's HTML drifted.
+Makes a few dozen seconds of live requests under the throttle. Failure means `curl` is being blocked or the site's HTML drifted.
 
 ## License
 
