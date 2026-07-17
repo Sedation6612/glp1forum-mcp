@@ -1,48 +1,39 @@
 ---
 name: glp1forum-mcp
-description: Drive the glp1forum-mcp server to research glp1forum.com effectively. Use this WHENEVER a task needs anything from glp1forum.com — GLP-1 vendor pricing or reputation, warehouse stock levels, group buys, peptide / research-chem sourcing threads, retatrutide / tirzepatide / semaglutide vendor discussion, or any XenForo search, thread read, or forum-section lookup on that specific site. Reach for it even when the user doesn't name the tools, as long as they want info that lives on glp1forum.com. It teaches the node-scoping, AND-matched-keyword, image-only-pricing, and rate-limit traps that the raw tool descriptions gloss over.
+description: Drive the glp1forum-mcp server to research glp1forum.com effectively. Use this WHENEVER a task needs anything from glp1forum.com — GLP-1 vendor pricing or reputation, warehouse stock levels, group buys, peptide / research-chem sourcing, retatrutide / tirzepatide / semaglutide vendor discussion, OR non-commercial user experiences like dosing, titration, and side-effect threads — any XenForo search, thread read, or forum-section lookup on that specific site. Reach for it even when the user doesn't name the tools, as long as they want info that lives on glp1forum.com. It teaches the node-scoping, AND-matched-keyword, image-only-pricing, and rate-limit traps that the raw tool descriptions gloss over.
 ---
 
 # Driving glp1forum-mcp
 
-This server scrapes glp1forum.com (a XenForo forum) through system `curl`. It is slow on purpose — every request is globally throttled — so plan the fewest calls that answer the question. The tools are simple; the traps below are what make the difference between 0 results and the answer.
+Scrapes glp1forum.com (a XenForo forum) via system `curl`. Every request is globally throttled ≥2.5s apart, so plan few calls.
 
-## Canonical flow
+## Flow
 
-Work outside-in, and don't skip step 1:
+1. **`list_forums`** first — returns real `{id, name, depth}` for every section: vendor boards *and* general/experience discussion (dosing, side effects, etc.). Never invent node IDs; a guessed one silently returns nothing.
+2. **`search_forum`** — scoped to the right node(s); see params below.
+3. **`get_thread`** — read a result via its row `url`.
+4. **`get_thread_images`** — only to read pricing/stock that lives in an image (see trap).
 
-1. **`list_forums`** — get the real numeric node IDs and section names. Do this first; never invent node IDs.
-2. **`search_forum`** — find threads, scoped to the right node(s).
-3. **`get_thread`** — read the posts of a promising result.
-4. **`get_thread_images`** — only when the text is missing pricing/stock that must be in an image.
+## search_forum
 
-Each step narrows the last. Skipping to `search_forum` with a guessed node is the most common way to get an empty or wrong result.
+Each result row is `{url, title, date, forum, author, replies, snippet}` — so you can pick and rank threads without extra calls.
 
-## Trap 1: node-scoping needs `includeChildNodes`
+- **`keywords` are AND-matched** (not shown in the schema) — every word must appear. Start with one or two broad terms; if you get 0 hits, **drop a term, never add one**.
+- **`nodes` + `includeChildNodes: true`** — parent/category sections hold no posts of their own and return 0 rows if searched alone; set `includeChildNodes` to search everything under them. Use the IDs from step 1.
+- **`searchType` + `groupByThread`** — default (omit `searchType`) searches posts, so a keyword buried in a reply still matches; add `groupByThread: true` for one row per thread. This is the discovery default. `searchType: "thread"` matches only titles/opening posts.
+- **`order`** — omit for relevance; `"date"` (newest first) for any *current / latest / in-stock* question — read the top rows and check their `date`; `"replies"` (most-discussed) for reputation, consensus, or "what are people saying" questions. `newerThan`/`olderThan` (`YYYY-MM-DD`) only to hard-exclude stale rows — `order: "date"` alone usually suffices, so don't agonize over a cutoff.
+- **Skip `prefixes`** — the numeric IDs aren't discoverable. `author`/`minReplies`/`titlesOnly` are rarely worth setting.
 
-Many useful nodes are **category / parent nodes** (e.g. node 45 "Vendor Connection") that contain sub-forums but no posts of their own. Searching them directly returns **0 rows**. To search a parent and everything under it, pass `includeChildNodes: true`. Always get the actual IDs from `list_forums` — the tree changes and guessed IDs silently return nothing.
+## Trap: pricing/stock is often image-only
 
-## Trap 2: keywords are AND-matched
+Vendor price lists, per-warehouse stock boards, and payment info are frequently **image attachments**, invisible to `get_thread`'s text. When a pricing/stock thread's `posts[].body` has no numbers, call `get_thread_images` — one throttled request **per image**, so `max` (default 6) means up to 6 fetches. Skip it for text/experience questions; it only helps with images.
 
-Every word in `keywords` must appear in a result. More terms = narrower search. If you get 0 hits, **drop terms**, don't add them. Start broad (`"retatrutide pricing"`), then tighten only if you're drowning in results. Over-constraining (`"retatrutide reta vendor stock price july restock"`) is the #2 cause of empty results after node-scoping.
+## Trap: pages
 
-## Trap 3: vendor pricing is often image-only
+`get_thread` and `search_forum` both return `lastPage`. For **current** status the live answer is on the last page (the opening post may be months stale) — read page 1, then re-fetch `page: lastPage` if needed. A search with `truncated: true` has more pages — re-search with a higher `maxPages` (max 3).
 
-A lot of vendor pricing, per-warehouse stock boards, and payment info is posted as **image attachments** — invisible to `get_thread`, which only extracts text. When a thread obviously *should* have prices (it's a vendor's pricing thread) but `get_thread`'s `posts[].body` has none, call **`get_thread_images`** so vision can read the tables. It costs **one throttled request per image**, so cap it with `max` (default 6). Don't call it reflexively on every thread — only when the text is genuinely missing the numbers.
+## Trap: rate limits
 
-## Trap 4: pagination
+On a rate-limit error (`… wait ~60s before retrying`), wait ~60–90s and retry that one call **once** — don't loop. (`list_threads` browses a section without a keyword — a fallback for eyeballing a node's newest threads.)
 
-`search_forum` results carry `truncated: true` and `lastPage`. If `truncated`, the answer may be on a later page — re-search with a higher `maxPages` (max 3). `get_thread` is paginated too (`page`, clamped to `lastPage`); page through a long thread if the relevant reply isn't on page 1.
-
-## Trap 5: rate limits — wait, don't hammer
-
-Requests are globally throttled ≥2.5s apart, so a multi-call sequence is inherently slow. On a rate-limit error (`… wait ~60s before retrying`), **wait ~60–90s and retry ONCE**. Do not retry in a tight loop — hammering *extends* the block. Budget **≥90s** for any call that might hit the backoff, and tell the user a lookup will take a bit rather than firing off parallel calls.
-
-## Worked example: "find current retatrutide vendor pricing"
-
-1. `list_forums` → locate the vendor section (say node 45 "Vendor Connection", a parent node).
-2. `search_forum` with `keywords: "retatrutide"`, `nodes: [45]`, `includeChildNodes: true`, `order: "date"` — recent first, and the child-nodes flag is essential or node 45 returns nothing.
-3. Open the top / most recent thread with `get_thread`.
-4. If `posts[].body` has the vendor's blurb but no numbers, call `get_thread_images` (`max: 6`) — the price list is almost certainly an image. Read the pricing/stock off the returned images.
-
-If step 2 is empty: drop to a single keyword, confirm the node ID from step 1, and make sure `includeChildNodes` is set.
+Example: `list_forums` → `search_forum {keywords:"retatrutide", nodes:[<vendorNodeId>], includeChildNodes:true, groupByThread:true, order:"date"}` → `get_thread` on the newest row → `get_thread_images` only if its body shows a blurb but no prices.
