@@ -3,8 +3,8 @@
   "version": "0.3.0",
   "type": "module",
   "description": "MCP server to search & investigate glp1forum.com (XenForo) with no API keys",
-  "license": "MIT",
-  "author": "sedation",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Sedation6612",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sedation6612/glp1forum-mcp.git"

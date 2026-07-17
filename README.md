@@ -56,4 +56,6 @@ Runs ~7 live requests (≈25s under the throttle). Failure means `curl` is being
 
 ## License
 
-MIT
+**All rights reserved** (see [LICENSE](LICENSE)). The source is public for viewing and
+for contributions back to this repository via pull request. It is not open source — you
+may not redistribute it or publish your own version. See the LICENSE file for details.

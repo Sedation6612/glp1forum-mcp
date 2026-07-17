@@ -2,8 +2,8 @@
   "name": "glp1forum-mcp",
   "description": "Search & read glp1forum.com (XenForo) with no API keys.",
   "version": "0.3.0",
-  "author": { "name": "sedation" },
-  "license": "MIT",
+  "author": { "name": "Sedation6612" },
+  "license": "SEE LICENSE IN LICENSE",
   "mcpServers": {
     "glp1forum": {
       "command": "node",
