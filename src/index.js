@@ -33,7 +33,7 @@ server.registerTool("get_thread",
   async (a) => ({ content: [{ type: "text", text: JSON.stringify(await getThread(a)) }] }));
 
 server.registerTool("get_thread_images",
-  { description: "Opt-in: download a thread's image attachments so their text (pricing tables, per-warehouse stock boards, payment pages) is readable by vision. Much of the vendor pricing on glp1forum is image-only and invisible to get_thread's text. Returns a summary plus the images as blocks; use max to cap how many download (default 6). Costs one throttled request per image.",
+  { description: "Opt-in: download a thread's image attachments at full size so their text (pricing tables, per-warehouse stock boards, COA purity figures, payment pages) is readable by vision. Much of the vendor pricing on glp1forum is image-only and invisible to get_thread's text. Returns a summary plus the images as blocks; use max to cap how many download (default 4, max 5). Costs one throttled request per image.",
     annotations: { title: "Read thread images", readOnlyHint: true },
     inputSchema: { url: z.string().optional(), threadId: z.number().optional(), page: z.number().optional(), max: z.number().optional() } },
   async (a) => {

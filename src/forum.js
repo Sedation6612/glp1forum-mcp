@@ -261,9 +261,15 @@ export async function getThread({ url, threadId, page }) {
     });
     const perma = $(el).find(".message-attribution a[href*='post-']").last().attr("href");
     const abs = (h) => (h ? new URL(h, BASE).href : null);
+    // ponytail: XF wraps every attachment img in <a href="/attachments/<slug>.<id>/"> — the strip
+    // adds class="file-preview", inline [ATTACH] uses a bare anchor. src is always a thumbnail
+    // (verified 2026-07-17: strip 279x150 -> 2584x1392; inline 154x150 -> 951x928).
+    // data-url is NOT an attachment's full-size URL — it's only set on hotlinked [IMG], where it's
+    // the un-proxied external original; prefer src so we fetch site-local. Bare /attachments/<id>/
+    // 403s, so the href must be scraped. If XF ever exposes a size param, this whole rung collapses.
     const images = [...new Set(
-      $(el).find(".message-body .bbWrapper img:not(.smilie), .message-attachments img")
-        .map((_, im) => $(im).attr("data-url") || $(im).attr("src") || $(im).attr("data-src")).get()
+      $(el).find(".message-body .bbWrapper img:not(.smilie):not(.bbCodeBlockUnfurl-image):not(.bbCodeBlockUnfurl-icon), .message-attachments img")
+        .map((_, im) => $(im).closest("a[href*='/attachments/']").attr("href") || $(im).attr("src")).get()
         .map(abs).filter(u => u && /^https?:/.test(u))
     )];
     return {
@@ -303,7 +309,10 @@ async function downloadBinary(url) {
 }
 
 // opt-in: download a thread's image attachments so their pixels (pricing tables, stock boards) can be read
-export async function fetchImages({ url, threadId, page, max = 6 }) {
+export async function fetchImages({ url, threadId, page, max = 4 }) {
+  max = Math.min(5, Math.max(1, max));  // ponytail: ~4.6k tok/full-size image vs the 25k default
+                                        // MAX_MCP_OUTPUT_TOKENS (4x4600=18.4k ok, 6x4600=27.6k over).
+                                        // Raise the ceiling only if the client's cap is raised.
   const t = await getThread({ url, threadId, page });
   const urls = [...new Set(t.posts.flatMap(p => p.images))];
   const images = [], skipped = [];

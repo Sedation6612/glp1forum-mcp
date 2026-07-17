@@ -80,13 +80,35 @@ const fi = await fetchImages({ url: "https://glp1forum.com/threads/now-launching
 assert.ok(fi.images.length >= 1, "fetchImages returned no images");
 assert.ok(fi.images.every(i => /^image\/(jpeg|png|webp|gif)$/.test(i.mimeType)), "image missing sniffed mimeType");
 assert.ok(fi.images.every(i => i.data && Buffer.from(i.data, "base64").length > 100), "image data not valid base64");
-console.log(`fetchImages ok: ${fi.images.length} images, mimes ${[...new Set(fi.images.map(i => i.mimeType))].join(", ")}`);
+// the direct tripwire for the thumbnail bug: this attachment is 8,502B at thumbnail, 182,420B full-size
+assert.ok(fi.images.every(i => Buffer.from(i.data, "base64").length > 50_000),
+  `thumbnail downloaded, not full-size: ${fi.images.map(i => Buffer.from(i.data, "base64").length).join(", ")}B`);
+console.log(`fetchImages ok: ${fi.images.length} images, mimes ${[...new Set(fi.images.map(i => i.mimeType))].join(", ")}, bytes ${fi.images.map(i => Buffer.from(i.data, "base64").length).join(", ")}`);
 
 // quote snippet — thread 9613 has real quoted text; the collapse must keep an inline snippet, no "Click to expand" residue
 const qt = await getThread({ url: "https://glp1forum.com/threads/9613/" });
 assert.ok(qt.posts.some(p => /\[quote: [^\]]*: "/.test(p.body)), "no [quote: name: \"...\"] snippet found");
 assert.ok(qt.posts.every(p => !p.body.includes("Click to expand")), "quote residue: 'Click to expand' leaked");
 console.log(`quote ok: ${qt.posts.filter(p => /\[quote: [^\]]*: "/.test(p.body)).length} posts with quoted snippets`);
+
+// inline [ATTACH] images — 9613 renders bare-anchored img.bbImage, which a.file-preview never matches.
+// 20694 (the strip) is the ONLY thread where the old selector worked, so asserting there validates the
+// bug instead of catching it. Reuses qt above — a second fetch would just burn 2.5s of throttle.
+const inlineUrls = qt.posts.flatMap(p => p.images);
+assert.ok(inlineUrls.length >= 14, `inline bbImage attachments missing: ${inlineUrls.length}`);
+assert.ok(inlineUrls.every(u => !u.includes("/data/attachments/")), "thumbnail leaked");
+console.log(`inline attachments ok: ${inlineUrls.length} full-size urls`);
+
+// unfurl filter — both images in 21325 are Notion link unfurls, excluded by class not URL
+const uf = await getThread({ url: "https://glp1forum.com/threads/21325/" });
+assert.deepEqual(uf.posts.flatMap(p => p.images), [], "unfurl images leaked");
+console.log("unfurl filter ok: 21325 yields no images");
+
+// hotlinked [IMG] must survive — DO NOT DELETE because it's a junk gif. This is the only guard against
+// re-introducing a proxy.php URL filter, which would silently drop every hotlinked image in every thread.
+const hl = await getThread({ url: "https://glp1forum.com/threads/20630/" });
+assert.ok(hl.posts.flatMap(p => p.images).some(u => /proxy\.php\?image=/.test(u)), "hotlinked proxy.php image dropped");
+console.log("hotlink ok: 20630 keeps its proxy.php url");
 
 // cross-process throttle — 3 processes reserving slots (network-free); slots at 0 / 2.5 / 5.0s
 const t0 = Date.now();

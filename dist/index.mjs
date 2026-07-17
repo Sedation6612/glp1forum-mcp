@@ -65680,7 +65680,7 @@ async function getThread({ url, threadId, page }) {
     const perma = $2(el).find(".message-attribution a[href*='post-']").last().attr("href");
     const abs = (h) => h ? new URL(h, BASE).href : null;
     const images = [...new Set(
-      $2(el).find(".message-body .bbWrapper img:not(.smilie), .message-attachments img").map((_2, im) => $2(im).attr("data-url") || $2(im).attr("src") || $2(im).attr("data-src")).get().map(abs).filter((u2) => u2 && /^https?:/.test(u2))
+      $2(el).find(".message-body .bbWrapper img:not(.smilie):not(.bbCodeBlockUnfurl-image):not(.bbCodeBlockUnfurl-icon), .message-attachments img").map((_2, im) => $2(im).closest("a[href*='/attachments/']").attr("href") || $2(im).attr("src")).get().map(abs).filter((u2) => u2 && /^https?:/.test(u2))
     )];
     return {
       author: $2(el).attr("data-author") ?? $2(el).find(".message-name").first().text().trim(),
@@ -65713,7 +65713,8 @@ async function downloadBinary(url) {
     await pushNext();
   }
 }
-async function fetchImages({ url, threadId, page, max = 6 }) {
+async function fetchImages({ url, threadId, page, max = 4 }) {
+  max = Math.min(5, Math.max(1, max));
   const t = await getThread({ url, threadId, page });
   const urls = [...new Set(t.posts.flatMap((p) => p.images))];
   const images = [], skipped = [];
@@ -65812,7 +65813,7 @@ server.registerTool(
 server.registerTool(
   "get_thread_images",
   {
-    description: "Opt-in: download a thread's image attachments so their text (pricing tables, per-warehouse stock boards, payment pages) is readable by vision. Much of the vendor pricing on glp1forum is image-only and invisible to get_thread's text. Returns a summary plus the images as blocks; use max to cap how many download (default 6). Costs one throttled request per image.",
+    description: "Opt-in: download a thread's image attachments at full size so their text (pricing tables, per-warehouse stock boards, COA purity figures, payment pages) is readable by vision. Much of the vendor pricing on glp1forum is image-only and invisible to get_thread's text. Returns a summary plus the images as blocks; use max to cap how many download (default 4, max 5). Costs one throttled request per image.",
     annotations: { title: "Read thread images", readOnlyHint: true },
     inputSchema: { url: external_exports.string().optional(), threadId: external_exports.number().optional(), page: external_exports.number().optional(), max: external_exports.number().optional() }
   },
