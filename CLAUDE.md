@@ -27,7 +27,9 @@ Nothing here is generated. Every row is a manual edit.
 |---|---|
 | version | `package.json:3`, `manifest.json:5`, `.claude-plugin/plugin.json:4`, `.claude-plugin/marketplace.json:10`, `src/index.js:6` — 5 hand edits, then rebuild (the 6th copy is baked into `dist/`) and **cut a release** (see below). Never regex-bump: `manifest.json:2` `"manifest_version": "0.3"` is the MCPB spec version. `package-lock.json` has drifted once already (`5a3950d`). CI fails if the 5 disagree. |
 | a tool (new/renamed) | `src/index.js`, `manifest.json:21-25` (`"tools_generated": false` — nothing regenerates that list), `README.md`, `skills/glp1forum-mcp/SKILL.md` |
+| `keywords` | `package.json`, `manifest.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` — 4 copies, plus the GitHub repo topics (`gh repo edit --add-topic`, a 5th copy outside the tree). CI checks none of them; they drift silently. |
 | a param name | `src/index.js`, `README.md`, `SKILL.md` (the manifest lists no params) |
+| param *guidance* | The `.describe()` strings in `src/index.js` are a port of `SKILL.md`'s param cheat-sheet — same advice, two places, nothing enforcing it. They exist separately **because `.mcpbignore:5` drops `skills/`**, so `.mcpb` users get the schema and never the skill. Change one, change the other. |
 | a return field | `src/forum.js`, `SKILL.md` — it documents the row shape and `lastPage`/`truncated` with no schema binding, so it silently lies when the parser drifts |
 | `BACKOFF`/`INTERVAL`/`max`/`maxPages` | `README.md` rate-limit section, `SKILL.md`, and the tool descriptions in `src/index.js` (which restate the numbers in prose) |
 

@@ -7,12 +7,12 @@
       "name": "glp1forum-mcp",
       "source": "./",
       "description": "MCP server to search & read glp1forum.com (XenForo) with no API keys, plus a skill teaching agents how to drive it.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": { "name": "Sedation6612" },
       "homepage": "https://github.com/Sedation6612/glp1forum-mcp",
       "repository": "https://github.com/Sedation6612/glp1forum-mcp",
       "license": "SEE LICENSE IN LICENSE",
-      "keywords": ["glp1", "xenforo", "forum", "scraper", "peptides"],
+      "keywords": ["mcp", "mcp-server", "model-context-protocol", "claude", "glp1", "xenforo", "forum", "scraper", "peptides"],
       "category": "research"
     }
   ]

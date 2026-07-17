@@ -65774,29 +65774,29 @@ async function listForums() {
 }
 
 // src/index.js
-var server = new McpServer({ name: "glp1forum", version: "0.3.0" });
+var server = new McpServer({ name: "glp1forum", version: "0.3.1" });
 server.registerTool(
   "search_forum",
   {
     description: "Full-text search glp1forum.com with granular XenForo filters. Multi-word keywords are AND-matched (all terms must appear). Category/parent nodes (e.g. 45 Vendor Connection) return nothing unless includeChildNodes: true. A rate-limit error means wait ~60s before retrying. Result has truncated: true when more result pages exist than were fetched \u2014 re-search with a higher maxPages (max 3) to get the rest.",
     annotations: { title: "Search glp1forum", readOnlyHint: true },
     inputSchema: {
-      keywords: external_exports.string(),
-      titlesOnly: external_exports.boolean().optional(),
-      nodes: external_exports.array(external_exports.number()).optional(),
-      includeChildNodes: external_exports.boolean().optional(),
-      author: external_exports.string().optional(),
-      newerThan: external_exports.string().optional(),
-      // YYYY-MM-DD
-      olderThan: external_exports.string().optional(),
-      minReplies: external_exports.number().optional(),
-      prefixes: external_exports.array(external_exports.number()).optional(),
-      order: external_exports.enum(["date", "replies"]).optional(),
-      groupByThread: external_exports.boolean().optional(),
-      searchType: external_exports.enum(["post", "thread"]).optional(),
+      // Text ported from SKILL.md, which survived two rounds of blind-execution agent tests.
+      // It lives here because .mcpbignore drops skills/ — .mcpb users only ever see this schema.
+      keywords: external_exports.string().describe("AND-matched: every word must appear. Start with one or two broad terms; if you get 0 hits, drop a term, never add one."),
+      titlesOnly: external_exports.boolean().optional().describe("Rarely worth setting."),
+      nodes: external_exports.array(external_exports.number()).optional().describe("Section IDs from list_forums. Never guess one \u2014 a wrong ID silently returns 0 rows instead of erroring."),
+      includeChildNodes: external_exports.boolean().optional().describe("Set true when nodes names a parent/category section: those hold no posts of their own and return 0 rows if searched alone."),
+      author: external_exports.string().optional().describe("Rarely worth setting."),
+      newerThan: external_exports.string().optional().describe(`YYYY-MM-DD. Only to hard-exclude stale rows \u2014 order:"date" alone usually suffices, so don't agonize over a cutoff.`),
+      olderThan: external_exports.string().optional().describe("YYYY-MM-DD. Only to hard-exclude rows newer than a cutoff."),
+      minReplies: external_exports.number().optional().describe("Rarely worth setting."),
+      prefixes: external_exports.array(external_exports.number()).optional().describe("Skip this \u2014 the numeric prefix IDs aren't discoverable from any tool."),
+      order: external_exports.enum(["date", "replies"]).optional().describe('Omit for relevance. "date" (newest first) for any current / latest / in-stock question. "replies" (most-discussed) for reputation, consensus, or what-are-people-saying questions.'),
+      groupByThread: external_exports.boolean().optional().describe("true collapses results to one row per thread. Omitting searchType plus groupByThread:true is the discovery default."),
+      searchType: external_exports.enum(["post", "thread"]).optional().describe('Omit (= "post") so a keyword buried in a reply still matches. "thread" matches only titles/opening posts.'),
       page: external_exports.number().optional(),
-      maxPages: external_exports.number().optional()
-      // clamped 1-3 in forum.js
+      maxPages: external_exports.number().optional().describe("Clamped 1-3. A result with truncated:true has more pages \u2014 re-search with a higher maxPages.")
     }
   },
   async (a) => ({ content: [{ type: "text", text: JSON.stringify(await searchForum(a)) }] })
@@ -65806,7 +65806,11 @@ server.registerTool(
   {
     description: "Read a thread's posts (paginated) for full context.",
     annotations: { title: "Read thread", readOnlyHint: true },
-    inputSchema: { url: external_exports.string().optional(), threadId: external_exports.number().optional(), page: external_exports.number().optional() }
+    inputSchema: {
+      url: external_exports.string().optional().describe("Prefer this: pass the url from a search_forum result row."),
+      threadId: external_exports.number().optional().describe("Alternative to url."),
+      page: external_exports.number().optional().describe("Clamped to lastPage. For current status read page 1 then re-fetch page: lastPage \u2014 the opening post may be months stale.")
+    }
   },
   async (a) => ({ content: [{ type: "text", text: JSON.stringify(await getThread(a)) }] })
 );
@@ -65815,7 +65819,12 @@ server.registerTool(
   {
     description: "Opt-in: download a thread's image attachments at full size so their text (pricing tables, per-warehouse stock boards, COA purity figures, payment pages) is readable by vision. Much of the vendor pricing on glp1forum is image-only and invisible to get_thread's text. Returns a summary plus the images as blocks; use max to cap how many download (default 4, max 5). Costs one throttled request per image.",
     annotations: { title: "Read thread images", readOnlyHint: true },
-    inputSchema: { url: external_exports.string().optional(), threadId: external_exports.number().optional(), page: external_exports.number().optional(), max: external_exports.number().optional() }
+    inputSchema: {
+      url: external_exports.string().optional().describe("Prefer this: pass the url from a search_forum result row."),
+      threadId: external_exports.number().optional().describe("Alternative to url."),
+      page: external_exports.number().optional().describe("Clamped to lastPage."),
+      max: external_exports.number().optional().describe("How many images to download (default 4, capped at 5). Each costs one throttled request and ~4.6k tokens \u2014 lower it when you only need the first table.")
+    }
   },
   async (a) => {
     const r = await fetchImages(a);
@@ -65828,7 +65837,10 @@ server.registerTool(
   {
     description: "Browse a forum section's threads (use list_forums for nodeIds).",
     annotations: { title: "List threads in section", readOnlyHint: true },
-    inputSchema: { nodeId: external_exports.number(), page: external_exports.number().optional() }
+    inputSchema: {
+      nodeId: external_exports.number().describe("Section ID from list_forums. Never guess one."),
+      page: external_exports.number().optional()
+    }
   },
   async (a) => ({ content: [{ type: "text", text: JSON.stringify(await listThreads(a)) }] })
 );
