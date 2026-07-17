@@ -35,16 +35,33 @@ That backoff plus request time can blow past a 2-minute caller timeout. **Give c
 
 Then install the `glp1forum-mcp` plugin. This auto-wires the MCP server; the plugin's config uses `${CLAUDE_PLUGIN_ROOT}` so there are no paths to edit.
 
-### Option B — manual (Claude Desktop)
+### Option B — Desktop Extension (.mcpb, one-click Claude Desktop)
 
-Add to `claude_desktop_config.json`:
+Download `glp1forum-mcp.mcpb` from the repo's Releases and double-click it — Claude Desktop
+installs it with no paths to edit and no `npm install` (the server is bundled into a single
+dependency-free `dist/index.mjs`). You still need system `curl` on your `PATH`.
+
+### Option C — manual (Claude Desktop)
+
+Run `npm install && npm run build` first, then add to `claude_desktop_config.json`:
 
 ```json
-"glp1forum": { "command": "node", "args": ["C:\\path\\to\\glp1forum-mcp\\src\\index.js"] }
+"glp1forum": { "command": "node", "args": ["C:\\path\\to\\glp1forum-mcp\\dist\\index.mjs"] }
 ```
 
 > MSIX Claude Desktop installs put this config under
 > `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\`, not plain `%APPDATA%`.
+
+## Build (contributors)
+
+The distributed artifact is a single bundled `dist/index.mjs` (esbuild). After editing anything
+in `src/`, rebuild and commit `dist/`:
+
+```
+npm install
+npm run build       # -> dist/index.mjs (what the plugin & .mcpb run)
+npm run pack        # build + produce glp1forum-mcp.mcpb for Claude Desktop
+```
 
 ## Self-test
 
