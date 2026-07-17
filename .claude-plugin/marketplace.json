@@ -1,0 +1,11 @@
+{
+  "name": "glp1forum-mcp",
+  "owner": { "name": "Sedation6612" },
+  "plugins": [
+    {
+      "name": "glp1forum-mcp",
+      "source": "./",
+      "description": "MCP server to search & read glp1forum.com (XenForo) with no API keys, plus a skill teaching agents how to drive it."
+    }
+  ]
+}
