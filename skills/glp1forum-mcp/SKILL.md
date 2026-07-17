@@ -26,7 +26,7 @@ Each result row is `{url, title, date, forum, author, replies, snippet}` — so 
 
 ## Trap: pricing/stock is often image-only
 
-Vendor price lists, per-warehouse stock boards, and payment info are frequently **image attachments**, invisible to `get_thread`'s text. When a pricing/stock thread's `posts[].body` has no numbers, call `get_thread_images` — one throttled request **per image**, so `max` (default 6) means up to 6 fetches. Skip it for text/experience questions; it only helps with images.
+Vendor price lists, per-warehouse stock boards, and payment info are frequently **image attachments**, invisible to `get_thread`'s text. When a pricing/stock thread's `posts[].body` has no numbers, call `get_thread_images` — one throttled request **per image**, so `max` (default 4, capped at 5) means up to 4 fetches. Images come back full-size, so fine print is legible but each costs ~4.6k tokens — lower `max` when you only need the first table. Skip it for text/experience questions; it only helps with images.
 
 ## Trap: pages
 
