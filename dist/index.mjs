@@ -3640,7 +3640,7 @@ var require_fast_uri = __commonJS({
         normalizeString(uri, options);
       } else if (typeof uri === "object") {
         uri = /** @type {T} */
-        parse10(serialize3(uri, options), options);
+        parse10(serialize4(uri, options), options);
       }
       return uri;
     }
@@ -3648,13 +3648,13 @@ var require_fast_uri = __commonJS({
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const resolved = resolveComponent(parse10(baseURI, schemelessOptions), parse10(relativeURI, schemelessOptions), schemelessOptions, true);
       schemelessOptions.skipEscape = true;
-      return serialize3(resolved, schemelessOptions);
+      return serialize4(resolved, schemelessOptions);
     }
     function resolveComponent(base, relative, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
-        base = parse10(serialize3(base, options), options);
-        relative = parse10(serialize3(relative, options), options);
+        base = parse10(serialize4(base, options), options);
+        relative = parse10(serialize4(relative, options), options);
       }
       options = options || {};
       if (!options.tolerant && relative.scheme) {
@@ -3708,7 +3708,7 @@ var require_fast_uri = __commonJS({
       const normalizedB = normalizeComparableURI(uriB, options);
       return normalizedA !== void 0 && normalizedB !== void 0 && normalizedA.toLowerCase() === normalizedB.toLowerCase();
     }
-    function serialize3(cmpts, opts) {
+    function serialize4(cmpts, opts) {
       const component = {
         host: cmpts.host,
         scheme: cmpts.scheme,
@@ -3886,7 +3886,7 @@ var require_fast_uri = __commonJS({
     function normalizeStringWithStatus(uri, opts) {
       const { parsed, malformedAuthorityOrPort } = parseWithStatus(uri, opts);
       return {
-        normalized: malformedAuthorityOrPort ? uri : serialize3(parsed, opts),
+        normalized: malformedAuthorityOrPort ? uri : serialize4(parsed, opts),
         malformedAuthorityOrPort
       };
     }
@@ -3896,7 +3896,7 @@ var require_fast_uri = __commonJS({
         return malformedAuthorityOrPort ? void 0 : normalized;
       }
       if (typeof uri === "object") {
-        return serialize3(uri, opts);
+        return serialize4(uri, opts);
       }
     }
     var fastUri = {
@@ -3905,7 +3905,7 @@ var require_fast_uri = __commonJS({
       resolve,
       resolveComponent,
       equal,
-      serialize: serialize3,
+      serialize: serialize4,
       parse: parse10
     };
     module.exports = fastUri;
@@ -36675,7 +36675,7 @@ var require_mime_type = __commonJS({
     "use strict";
     var MIMETypeParameters = require_mime_type_parameters();
     var parse10 = require_parser();
-    var serialize3 = require_serializer();
+    var serialize4 = require_serializer();
     var {
       asciiLowercase,
       solelyContainsHTTPTokenCodePoints
@@ -36731,7 +36731,7 @@ var require_mime_type = __commonJS({
         return this._parameters;
       }
       toString() {
-        return serialize3(this);
+        return serialize4(this);
       }
       isJavaScript({ prohibitParameters = false } = {}) {
         switch (this._type) {
@@ -65589,13 +65589,16 @@ function classifyResultPage(html3) {
   if (/blockMessage">\s*No results found/i.test(html3)) return "empty";
   return "unknown";
 }
-var searchChain = Promise.resolve();
-function searchForum(p) {
-  const r = searchChain.then(() => _searchForum(p), () => _searchForum(p));
-  searchChain = r.catch(() => {
-  });
-  return r;
+function serialize3(fn) {
+  let chain = Promise.resolve();
+  return (...a) => {
+    const r = chain.then(() => fn(...a), () => fn(...a));
+    chain = r.catch(() => {
+    });
+    return r;
+  };
 }
+var searchForum = serialize3(_searchForum);
 async function _searchForum(p) {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -65755,14 +65758,14 @@ async function listForums() {
     const raw = $2(el).text();
     return {
       id: Number($2(el).attr("value")),
-      name: raw.replace(/^[\s ]+/, "").trim(),
-      depth: (raw.match(/ /g) ?? []).length
+      name: raw.replace(/^\s+/, "").trim()
+      // \s covers the U+00A0 indent XF emits — no literal needed
     };
   }).get().filter((f) => f.id);
 }
 
 // src/index.js
-var server = new McpServer({ name: "glp1forum", version: "0.4.0" });
+var server = new McpServer({ name: "glp1forum", version: "0.5.0" });
 server.registerTool(
   "search_forum",
   {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { searchForum, getThread, listForums, listThreads, fetchImages, cfDecode, reserveSlot, classifyResultPage } from "./forum.js";
+import { searchForum, getThread, listForums, listThreads, fetchImages, cfDecode, reserveSlot, classifyResultPage, serialize } from "./forum.js";
 
 // RC1 guard (network-free): _xfToken is on every page; genuine empty is positively detected as 'empty',
 // an unrecognized 0-row page (login/challenge) is 'unknown' → distinct error, not a silent empty.
@@ -10,22 +10,24 @@ assert.equal(classifyResultPage('<input name="_xfToken" value="x">You must wait 
 assert.equal(classifyResultPage('<html><body>please log in</body></html>'), "unknown");
 console.log("classifyResultPage ok");
 
-// RC3 guard (network-free): a copy of the searchForum mutex must run tasks strictly in order
+// RC3 guard (network-free): drives the REAL searchForum mutex — searchForum IS serialize(_searchForum),
+// so this exercises the shipped chaining, not a copy of it. It can't go through searchForum itself:
+// _searchForum hits curl on its first statement with no injection seam.
+// Two properties: strict ordering, and a rejected task must not poison the chain behind it (C throws;
+// _searchForum rejects routinely on rate limits, and a poisoned chain would fail every later search).
 {
-  let chain = Promise.resolve();
   const order = [];
-  const guarded = (label, ms) => {
-    const r = chain.then(() => task(label, ms), () => task(label, ms));
-    chain = r.catch(() => {});
-    return r;
-  };
   const task = async (label, ms) => {
     order.push(`${label}:start`);
     await new Promise(res => setTimeout(res, ms));
     order.push(`${label}:end`);
+    if (label === "C") throw new Error("boom");
   };
-  await Promise.all([guarded("A", 30), guarded("B", 1)]); // B is faster but must still wait for A
-  assert.deepEqual(order, ["A:start", "A:end", "B:start", "B:end"], `mutex order broken: ${order.join(",")}`);
+  const guarded = serialize(task);
+  // B/C/D are faster than A but must still wait for it
+  await Promise.allSettled([guarded("A", 30), guarded("B", 1), guarded("C", 1), guarded("D", 1)]);
+  assert.deepEqual(order, ["A:start", "A:end", "B:start", "B:end", "C:start", "C:end", "D:start", "D:end"],
+    `mutex order broken: ${order.join(",")}`);
   console.log("search mutex ordering ok");
 }
 

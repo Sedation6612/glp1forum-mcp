@@ -9,7 +9,7 @@ Scrapes glp1forum.com (a XenForo forum) via system `curl`. Every request is glob
 
 ## Flow
 
-1. **`list_forums`** first — returns real `{id, name, depth}` for every section: vendor boards *and* general/experience discussion (dosing, side effects, etc.). Never invent node IDs; a guessed one silently returns nothing.
+1. **`list_forums`** first — returns real `{id, name}` for every section: vendor boards *and* general/experience discussion (dosing, side effects, etc.). Never invent node IDs; a guessed one silently returns nothing.
 2. **`search_forum`** — scoped to the right node(s); see params below.
 3. **`get_thread`** — read a result via its row `url`.
 4. **`get_thread_images`** — only to read pricing/stock that lives in an image (see trap).

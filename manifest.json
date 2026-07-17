@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "glp1forum-mcp",
   "display_name": "glp1forum.com Search",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Search & read glp1forum.com (a XenForo forum) with no API keys, via system curl.",
   "author": { "name": "Sedation6612", "url": "https://github.com/Sedation6612" },
   "repository": { "type": "git", "url": "https://github.com/Sedation6612/glp1forum-mcp.git" },
@@ -17,14 +17,6 @@
       "args": ["${__dirname}/dist/index.mjs"]
     }
   },
-  "tools": [
-    { "name": "search_forum", "description": "Full-text XenForo search with node/author/date filters." },
-    { "name": "get_thread", "description": "Read a thread's posts (paginated)." },
-    { "name": "get_thread_images", "description": "Download a thread's image attachments so vision can read image-only pricing/stock tables." },
-    { "name": "list_threads", "description": "Browse a forum section's threads by nodeId." },
-    { "name": "list_forums", "description": "List forum sections with their numeric node IDs." }
-  ],
-  "tools_generated": false,
   "compatibility": {
     "platforms": ["win32", "darwin", "linux"],
     "runtimes": { "node": ">=18.0.0" }

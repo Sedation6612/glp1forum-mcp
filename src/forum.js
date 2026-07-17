@@ -165,15 +165,22 @@ export function classifyResultPage(html) {
   return "unknown"; // login / challenge / layout drift — NOT a genuine empty
 }
 
+// ponytail: exported only for the selftest, like reserveSlot/classifyResultPage. Don't un-export.
+// The selftest cannot drive the mutex through searchForum: _searchForum hits curl on its first
+// statement with no injection seam, so serialization is unobservable without live network.
+export function serialize(fn) {
+  let chain = Promise.resolve();
+  return (...a) => {
+    const r = chain.then(() => fn(...a), () => fn(...a));
+    chain = r.catch(() => {}); // a rejection must not break the chain
+    return r;
+  };
+}
+
 // ponytail: in-process mutex — search-vs-search only. A concurrent get_thread/list_*
 // still shares the jar and can clobber a search's session mid-sequence (unobserved —
 // give search its own jar if it ever surfaces). The other 3 tools do NOT take this mutex.
-let searchChain = Promise.resolve();
-export function searchForum(p) {
-  const r = searchChain.then(() => _searchForum(p), () => _searchForum(p));
-  searchChain = r.catch(() => {}); // a rejection must not break the chain
-  return r;
-}
+export const searchForum = serialize(_searchForum);
 
 async function _searchForum(p) {
   // ponytail: cached guest token in the cookie jar, refetch once on failure
@@ -348,8 +355,7 @@ export async function listForums() {
     const raw = $(el).text();
     return {
       id: Number($(el).attr("value")),
-      name: raw.replace(/^[\s ]+/, "").trim(),
-      depth: (raw.match(/ /g) ?? []).length,
+      name: raw.replace(/^\s+/, "").trim(), // \s covers the U+00A0 indent XF emits — no literal needed
     };
   }).get().filter(f => f.id);
 }

@@ -25,8 +25,8 @@ Nothing here is generated. Every row is a manual edit.
 
 | When you change | Also update |
 |---|---|
-| version | `package.json:3`, `manifest.json:5`, `.claude-plugin/plugin.json:4`, `.claude-plugin/marketplace.json:10`, `src/index.js:6` — 5 hand edits, then rebuild (the 6th copy is baked into `dist/`) and **cut a release** (see below). Never regex-bump: `manifest.json:2` `"manifest_version": "0.3"` is the MCPB spec version. `package-lock.json` has drifted once already (`5a3950d`). CI fails if the 5 disagree. |
-| a tool (new/renamed) | `src/index.js`, `manifest.json:21-25` (`"tools_generated": false` — nothing regenerates that list), `README.md`, `skills/glp1forum-mcp/SKILL.md` |
+| version | `package.json:3`, `manifest.json:5`, `.claude-plugin/plugin.json:4`, `.claude-plugin/marketplace.json:10`, `src/index.js:6` — 5 hand edits, then rebuild (the 6th copy is baked into `dist/`) and **cut a release** (see below). Never regex-bump: `manifest.json:2` `"manifest_version": "0.3"` is the MCPB spec version. `package-lock.json` is a 6th copy that CI does *not* check — bump it with `npm install --package-lock-only` (never by hand), then eyeball the diff: at v0.5.0 it was still carrying a `bin` of `dist/index.js`, a file that has never existed. It has drifted before (`5a3950d`). CI fails if the 5 disagree. |
+| a tool (new/renamed) | `src/index.js`, `README.md`, `skills/glp1forum-mcp/SKILL.md`. The manifest deliberately carries **no** `tools` array — it's optional in the MCPB v0.3 schema (`required` is name/version/description/author/server), and the hand-synced copy it used to hold drifted from `src/index.js` with nothing checking it. Don't re-add one. |
 | `keywords` | `package.json`, `manifest.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` — 4 copies, plus the GitHub repo topics (`gh repo edit --add-topic`, a 5th copy outside the tree). CI checks none of them; they drift silently. |
 | a param name | `src/index.js`, `README.md`, `SKILL.md` (the manifest lists no params) |
 | param *guidance* | The `.describe()` strings in `src/index.js` are a port of `SKILL.md`'s param cheat-sheet — same advice, two places, nothing enforcing it. They exist separately **because `.mcpbignore:5` drops `skills/`**, so `.mcpb` users get the schema and never the skill. Change one, change the other. |
@@ -78,8 +78,11 @@ It mixes pure guards with live requests against the real forum, and is pinned to
 images, `> 50_000` bytes). **It will rot.** A failure is as likely to be forum drift or Cloudflare as
 a real regression — check which before "fixing" code.
 
-- `reserveSlot` and `classifyResultPage` are exported *only* for the selftest. Don't un-export.
-- `selftest.js:120`'s `>= 4800` is coupled to `INTERVAL = 2500` (`forum.js:41`).
+- `reserveSlot`, `classifyResultPage`, and `serialize` are exported *only* for the selftest. Don't
+  un-export. `serialize` is the search mutex itself (`searchForum` *is* `serialize(_searchForum)`) —
+  it's a named export purely so the selftest drives the shipped code instead of a copy of it, which
+  is what the RC3 block used to do while being incapable of failing.
+- `selftest.js:122`'s `>= 4800` is coupled to `INTERVAL = 2500` (`forum.js:35`).
 - Convention (`41721ae`): a behavior fix leaves a tripwire that fails before the change and passes
   after. The comments explain *why* each assert points where it does — 20694 was the one thread where
   the thumbnail bug's old selector worked, so asserting there would have validated the bug. Preserve
@@ -87,13 +90,19 @@ a real regression — check which before "fixing" code.
 
 ## Traps the code comments don't cover
 
-- **Error strings are coupled across three literals with no shared constant.** `forum.js:122` and
+- **Error strings are coupled across three literals with no shared constant.** `forum.js:116` and
   `forum.js:210` must both keep matching the `/rate-limited|blocked/` regex at `forum.js:230`. Break
   the match and you get a retry storm against a flooding server.
 - **The `~60s` in the error message is advice to the caller about the site**, deliberately distinct
-  from the 8s internal backoff (`forum.js:113-115` explains). Don't "fix" it to say 8s.
-- **`listForums` derives `depth` by counting literal NBSP characters** (`forum.js:354-361`). An
-  editor that normalizes NBSP to a regular space silently breaks it.
+  from the 8s internal backoff (`forum.js:107-109` explains). Don't "fix" it to say 8s.
+- **`listForums` returns `{id, name}` — there is no `depth`, and re-adding one is a mistake.** There
+  was one, derived by counting literal U+00A0 characters, and the trap this bullet used to warn about
+  *fired*: something normalized them to U+0020, so `depth` silently counted the spaces in a forum
+  *name* instead of its indentation, and shipped that way through v0.4.0 — 61 of 76 nodes wrong
+  ("Other Peptides / Stacking / Etc." reported `depth: 6` at hierarchy level 2). Nothing read the
+  field and no assert covered it, so it stayed green for a full release. **Never write parsing that
+  depends on a literal U+00A0 in the source.** JS `\s` already matches U+00A0, which is why `name`'s
+  leading-strip survived the normalization untouched while `depth` died silently.
 
 The `ponytail:` markers in `forum.js` name each shortcut's ceiling and upgrade path — curl transport
 (→ Playwright if Cloudflare adds Turnstile), the attachment-href scrape (collapses if XF exposes a
